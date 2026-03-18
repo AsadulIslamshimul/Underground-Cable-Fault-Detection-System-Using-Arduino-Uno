@@ -1,0 +1,87 @@
+# Underground Cable Fault Detection System Using Arduino Uno
+
+#include <LiquidCrystal.h>
+
+// LCD pin configuration: RS, E, D4, D5, D6, D7
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+
+// Analog pins for cable lines
+#define R_PHASE A0
+#define Y_PHASE A1
+#define B_PHASE A2
+
+// LED indicators
+#define LED_R 8
+#define LED_Y 9
+#define LED_B 10
+
+// Buzzer
+#define BUZZER 11
+
+// Threshold values (adjust based on your circuit)
+int thresholdLow = 100;     // Fault (short/open)
+int thresholdHigh = 900;    // Normal
+
+void setup() {
+  lcd.begin(16, 2);
+
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_Y, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Cable Fault");
+  lcd.setCursor(0, 1);
+  lcd.print("Detection Sys");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  int rValue = analogRead(R_PHASE);
+  int yValue = analogRead(Y_PHASE);
+  int bValue = analogRead(B_PHASE);
+
+  // Process each phase
+  checkPhase("R", rValue, LED_R, 0);
+  checkPhase("Y", yValue, LED_Y, 5);
+  checkPhase("B", bValue, LED_B, 10);
+
+  delay(1000);
+}
+
+void checkPhase(String phase, int value, int ledPin, int lcdPos) {
+
+  lcd.setCursor(lcdPos, 0);
+  lcd.print(phase + ":");
+
+  if (value < thresholdLow) {
+    // Fault condition
+    digitalWrite(ledPin, HIGH);
+    digitalWrite(BUZZER, HIGH);
+
+    lcd.setCursor(lcdPos, 1);
+    lcd.print("F ");
+
+  } else if (value > thresholdHigh) {
+    // Normal condition
+    digitalWrite(ledPin, LOW);
+
+    lcd.setCursor(lcdPos, 1);
+    lcd.print("NF");
+
+  } else {
+    // Intermediate (distance estimation)
+    digitalWrite(ledPin, HIGH);
+
+    int distance = map(value, thresholdLow, thresholdHigh, 1, 10);
+
+    lcd.setCursor(lcdPos, 1);
+    lcd.print(distance);
+    lcd.print("km");
+  }
+
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+}
